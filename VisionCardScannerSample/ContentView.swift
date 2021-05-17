@@ -54,7 +54,7 @@ struct ScannerView: UIViewControllerRepresentable {
          let expireIn = paymentCardNumber.expireIn {
         delegate?.expireDateCB = expireIn
         delegate?.numberCB = numberCard
-        //delegate?.debugString = paymentCardNumber.debugString ?? ""
+        delegate?.debugString = paymentCardNumber.debugString ?? ""
         delegate?.typeCB = paymentCardNumber.cardType?.rawValue ?? ""
         self.isPresented.wrappedValue = false
       }

@@ -67,16 +67,16 @@ public class VisionCardScannerViewController: UIViewController, AVCaptureVideoDa
     fatalError("init(coder:) has not been implemented")
   }
   
-  override func loadView() {
+  override public func loadView() {
     self.view = UIView()
   }
   
-  override func viewDidLoad() {
+  override public func viewDidLoad() {
     super.viewDidLoad()
     self.setupCaptureSession()
   }
   
-  override func viewDidLayoutSubviews() {
+  override public func viewDidLayoutSubviews() {
     super.viewDidLayoutSubviews()
     self.previewLayer.frame = self.view.bounds
     self.addCaptureArea()
@@ -85,7 +85,7 @@ public class VisionCardScannerViewController: UIViewController, AVCaptureVideoDa
   
   // MARK: - AVCaptureVideoDataOutputSampleBufferDelegate
   
-  func captureOutput(_ output: AVCaptureOutput,
+  public func captureOutput(_ output: AVCaptureOutput,
                      didOutput sampleBuffer: CMSampleBuffer,
                      from connection: AVCaptureConnection) {
     guard let frame = CMSampleBufferGetImageBuffer(sampleBuffer) else {
@@ -305,7 +305,7 @@ public class VisionCardScannerViewController: UIViewController, AVCaptureVideoDa
 }
 
 extension VisionCardScannerViewController: VisionCardScannerProtocol {
-  func startScanning(resultsHandler: @escaping VisionCardScannerCompletion) {
+  public func startScanning(resultsHandler: @escaping VisionCardScannerCompletion) {
     self.resultsHandler = resultsHandler
     startRunning()
   }
