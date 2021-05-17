@@ -42,13 +42,6 @@ enum CardType: String {
   }
 }
 
-enum Constants {
-  static let cardWidthRatio:Float = 85.60
-  static let cardHeightRatio:Float = 53.98
-  static let expireInPattern: String = #"(\d{2}\/\d{2})"#
-  static let namePattern: String = #"([A-z]{2,}\h([A-z.]+\h)?[A-z]{2,})"#
-}
-
 enum Candidate: Hashable {
   case number(String)
   case name(String)
