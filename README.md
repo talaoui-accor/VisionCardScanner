@@ -1,4 +1,2 @@
-# CreditCardScanner
-
-A description of this package.
 # VisionCardScanner
+A description of this package.
