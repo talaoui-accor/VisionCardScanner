@@ -6,9 +6,10 @@
 //
 
 import Foundation
+import UIKit
 
 // MARK: - VisionCardScannerProtocol
 
-public protocol VisionCardScannerProtocol {
+public protocol VisionCardScannerProtocol: UIViewController {
   func startScanning(resultsHandler: @escaping VisionCardScannerCompletion)
 }

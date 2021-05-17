@@ -12,6 +12,7 @@ struct ContentView: View {
   @State var numberCB: String = ""
   @State var typeCB: String = ""
   @State var expireDateCB: String = ""
+  @State var holderNameCB: String = ""
   @State var debugString: String = ""
   @State var isPresented: Bool = false
   @Environment(\.presentationMode) var presentationMode
@@ -21,8 +22,12 @@ struct ContentView: View {
       VStack {
         Text("Card Number").font(.caption)
         Text("\(numberCB)").font(.title2)
-        Text("Expired In : \(expireDateCB)").font(.title3).lineSpacing(20)
-        Text("Type: \(typeCB)").font(.title2)
+        Text("Expired In : \(expireDateCB)").font(.caption)
+        Text("\(expireDateCB)").font(.title3)
+        Text("Type:").font(.caption)
+        Text("\(typeCB)").font(.title2)
+        Text("Holder").font(.caption)
+        Text("\(holderNameCB)").font(.title2)
         Text("\(debugString)").font(.caption2)
         Button("Scanner") {
           self.isPresented.toggle()
@@ -54,8 +59,9 @@ struct ScannerView: UIViewControllerRepresentable {
          let expireIn = paymentCardNumber.expireIn {
         delegate?.expireDateCB = expireIn
         delegate?.numberCB = numberCard
-        delegate?.debugString = paymentCardNumber.debugString ?? ""
+        delegate?.holderNameCB = paymentCardNumber.name ?? ""
         delegate?.typeCB = paymentCardNumber.cardType?.rawValue ?? ""
+        //delegate?.debugString = paymentCardNumber.debugString ?? ""
         self.isPresented.wrappedValue = false
       }
     }

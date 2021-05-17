@@ -8,9 +8,9 @@
 import Foundation
 
 public class VisionCardScannerEntity {
-  var numberCard: String?
-  var name: String?
-  var expireIn: String?
-  var debugString: String?
-  var cardType: CardType?
+  public var numberCard: String?
+  public var name: String?
+  public var expireIn: String?
+  public var debugString: String?
+  public var cardType: CardType?
 }

@@ -9,14 +9,12 @@ import Foundation
 
 public typealias VisionCardScannerCompletion = ((VisionCardScannerEntity?) -> Void)
 
-typealias PredictedCount = Int
-
-enum CardType: String {
+public enum CardType: String {
   case Unknown, Amex, Visa, MasterCard, Diners, Discover, JCB, Elo, Hipercard, UnionPay
-  
+
   static let allCards = [Amex, Visa, MasterCard, Diners, Discover, JCB, Elo, Hipercard, UnionPay]
-  
-  var regex : String {
+
+  var regex: String {
     switch self {
     case .Amex:
       return "^3[47][0-9]{5,}$"
@@ -41,6 +39,8 @@ enum CardType: String {
     }
   }
 }
+
+typealias PredictedCount = Int
 
 enum Candidate: Hashable {
   case number(String)

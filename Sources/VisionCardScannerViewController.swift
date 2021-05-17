@@ -10,103 +10,109 @@ import Foundation
 import Vision
 import UIKit
 
-public class VisionCardScannerViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDelegate {
-  
+public class VisionCardScannerViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDelegate, VisionCardScannerProtocol {
+
   enum Constants {
-    static let cardWidthRatio:Float = 85.60
-    static let cardHeightRatio:Float = 53.98
+    static let cardWidthRatio: Float = 85.60
+    static let cardHeightRatio: Float = 53.98
     static let expireInPattern: String = #"(\d{2}\/\d{2})"#
     static let namePattern: String = #"([A-z]{2,}\h([A-z.]+\h)?[A-z]{2,})"#
   }
 
   private let lock = NSLock()
-  
-  private let paymentCardAspectRatio: Float = Constants.cardWidthRatio/Constants.cardHeightRatio
-  
+
+  private let paymentCardAspectRatio: Float = Constants.cardWidthRatio / Constants.cardHeightRatio
+
   private var selectedCard = VisionCardScannerEntity()
   private var predictedCardInfo: [Candidate: PredictedCount] = [:]
-  
+
   private let requestHandler = VNSequenceRequestHandler()
   private var rectangleDrawing: CAShapeLayer?
   private var paymentCardRectangleObservation: VNRectangleObservation?
-  
+
   // MARK: - VideoSession Capture
+
   private let captureSession = AVCaptureSession()
   private lazy var previewLayer: AVCaptureVideoPreviewLayer = {
     let preview = AVCaptureVideoPreviewLayer(session: self.captureSession)
     preview.videoGravity = .resizeAspect
     return preview
   }()
+
   private let videoOutput = AVCaptureVideoDataOutput()
   private var isFound: Bool = false
-  
+
   // MARK: - Bound for scanner (centered rect)
-  
+
   private var rectangleOnScreen: CGRect {
-    get {
-      let width: CGFloat = CGFloat(self.previewLayer.frame.width) * CGFloat(Constants.cardWidthRatio) / 100
-      let height: CGFloat = width * CGFloat(Constants.cardHeightRatio) / 100
-      let x: CGFloat = (self.previewLayer.frame.width - width) / 2
-      let y: CGFloat = (self.previewLayer.frame.height - height) / 2
-      
-      return CGRect(x: x, y: y, width: width, height: height)
-    }
+    let width = CGFloat(previewLayer.frame.width) * CGFloat(Constants.cardWidthRatio) / 100
+    let height: CGFloat = width * CGFloat(Constants.cardHeightRatio) / 100
+    let x: CGFloat = (previewLayer.frame.width - width) / 2
+    let y: CGFloat = (previewLayer.frame.height - height) / 2
+
+    return CGRect(x: x, y: y, width: width, height: height)
   }
-  
+
   // MARK: - Instance dependencies
-  
+
   private var resultsHandler: VisionCardScannerCompletion?
-  
+
   // MARK: - Initializers
-  
+
   public init() {
     super.init(nibName: nil, bundle: nil)
   }
-  
-  required init?(coder: NSCoder) {
+
+  @available(*, unavailable)
+  required public init?(coder: NSCoder) {
     fatalError("init(coder:) has not been implemented")
   }
-  
+
   override public func loadView() {
-    self.view = UIView()
+    view = UIView()
   }
-  
+
   override public func viewDidLoad() {
     super.viewDidLoad()
-    self.setupCaptureSession()
+    setupCaptureSession()
   }
-  
+
   override public func viewDidLayoutSubviews() {
     super.viewDidLayoutSubviews()
-    self.previewLayer.frame = self.view.bounds
-    self.addCaptureArea()
+    previewLayer.frame = view.bounds
+    addCaptureArea()
+  }
+
+  // MARK: - AVCaptureVideoDataOutputSampleBufferDelegate
+
+  @objc
+  private func done() {
+    self.dismiss(animated: true, completion: nil)
   }
   
-  
-  // MARK: - AVCaptureVideoDataOutputSampleBufferDelegate
-  
   public func captureOutput(_ output: AVCaptureOutput,
-                     didOutput sampleBuffer: CMSampleBuffer,
-                     from connection: AVCaptureConnection) {
+                            didOutput sampleBuffer: CMSampleBuffer,
+                            from connection: AVCaptureConnection) {
     guard let frame = CMSampleBufferGetImageBuffer(sampleBuffer) else {
       debugPrint("unable to get image from sample buffer")
       return
     }
     if let paymentCardRectangleObservation = self.paymentCardRectangleObservation {
-      self.handleObservedPaymentCard(paymentCardRectangleObservation, in: frame)
-    } else if let paymentCardRectangleObservation = self.detectPaymentCard(frame: frame) {
+      handleObservedPaymentCard(paymentCardRectangleObservation, in: frame)
+    } else if let paymentCardRectangleObservation = detectPaymentCard(frame: frame) {
       self.paymentCardRectangleObservation = paymentCardRectangleObservation
     }
   }
-  
+
   // MARK: - Camera setup
-  
+
   private func setupCaptureSession() {
-    self.addCameraInput()
-    self.addPreviewLayer()
-    self.addVideoOutput()
+    addCameraInput()
+    addPreviewLayer()
+    addVideoOutput()
+    addNavigationBar()
   }
-  
+
   private func addCaptureArea() {
     DispatchQueue.main.async {
       self.rectangleDrawing?.removeFromSuperlayer()
@@ -117,30 +123,40 @@ public class VisionCardScannerViewController: UIViewController, AVCaptureVideoDa
       }
     }
   }
+
+  private func addNavigationBar() {
+    let screenSize: CGRect = UIScreen.main.bounds
+    let navBar = UINavigationBar(frame: CGRect(x: 0, y: 0, width: screenSize.width, height: 44))
+    let navItem = UINavigationItem(title: "Scanner votre carte")
+    let doneItem = UIBarButtonItem(barButtonSystemItem: UIBarButtonItem.SystemItem.done, target: nil, action: #selector(done))
+    navItem.rightBarButtonItem = doneItem
+    navBar.setItems([navItem], animated: false)
+    self.view.addSubview(navBar)
+  }
   
   private func addCameraInput() {
     let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back)!
     let cameraInput = try! AVCaptureDeviceInput(device: device)
-    self.captureSession.addInput(cameraInput)
+    captureSession.addInput(cameraInput)
   }
-  
+
   private func addPreviewLayer() {
-    self.view.layer.addSublayer(self.previewLayer)
+    view.layer.addSublayer(previewLayer)
   }
-  
+
   private func addVideoOutput() {
-    self.videoOutput.videoSettings = [(kCVPixelBufferPixelFormatTypeKey as NSString) : NSNumber(value: kCVPixelFormatType_32BGRA)] as [String : Any]
-    self.videoOutput.setSampleBufferDelegate(self, queue: DispatchQueue(label: "my.image.handling.queue"))
-    self.captureSession.addOutput(self.videoOutput)
-    guard let connection = self.videoOutput.connection(with: AVMediaType.video),
+    videoOutput.videoSettings = [(kCVPixelBufferPixelFormatTypeKey as NSString): NSNumber(value: kCVPixelFormatType_32BGRA)] as [String: Any]
+    videoOutput.setSampleBufferDelegate(self, queue: DispatchQueue(label: "my.image.handling.queue"))
+    captureSession.addOutput(videoOutput)
+    guard let connection = videoOutput.connection(with: AVMediaType.video),
           connection.isVideoOrientationSupported else { return }
     connection.videoOrientation = .portrait
   }
-  
+
   private func startRunning() {
-    self.captureSession.startRunning()
+    captureSession.startRunning()
   }
-  
+
   private func createCenterRectArea(color: CGColor?) -> CAShapeLayer {
     let boundingBoxPath = CGPath(roundedRect: rectangleOnScreen, cornerWidth: 10, cornerHeight: 10, transform: nil)
     let shapeLayer = CAShapeLayer()
@@ -152,42 +168,41 @@ public class VisionCardScannerViewController: UIViewController, AVCaptureVideoDa
     shapeLayer.cornerRadius = 5
     return shapeLayer
   }
-  
+
   // MARK: - Payment Card Processing
-  
+
   private func detectPaymentCard(frame: CVImageBuffer) -> VNRectangleObservation? {
     let rectangleDetectionRequest = VNDetectRectanglesRequest()
     rectangleDetectionRequest.minimumAspectRatio = paymentCardAspectRatio * 0.95
     rectangleDetectionRequest.maximumAspectRatio = paymentCardAspectRatio * 1.10
     let textDetectionRequest = VNDetectTextRectanglesRequest()
-    
-    try? self.requestHandler.perform([rectangleDetectionRequest, textDetectionRequest], on: frame)
-    
+
+    try? requestHandler.perform([rectangleDetectionRequest, textDetectionRequest], on: frame)
+
     guard let rectangle = (rectangleDetectionRequest.results as? [VNRectangleObservation])?.first,
           let text = (textDetectionRequest.results as? [VNTextObservation])?.first,
           rectangle.boundingBox.contains(text.boundingBox) else {
       return nil
     }
-    
+
     return rectangle
   }
-  
-  
+
   private func trackPaymentCard(for observation: VNRectangleObservation, in frame: CVImageBuffer) -> VNRectangleObservation? {
-    
+
     let request = VNTrackRectangleRequest(rectangleObservation: observation)
     request.trackingLevel = .fast
-    
-    try? self.requestHandler.perform([request], on: frame)
-    
+
+    try? requestHandler.perform([request], on: frame)
+
     guard let trackedRectangle = (request.results as? [VNRectangleObservation])?.first else {
       return nil
     }
     return trackedRectangle
   }
-  
+
   private func handleObservedPaymentCard(_ observation: VNRectangleObservation, in frame: CVImageBuffer) {
-    if let _ = self.trackPaymentCard(for: observation, in: frame) {
+    if let _ = trackPaymentCard(for: observation, in: frame) {
       DispatchQueue.global(qos: .userInitiated).async {
         if self.extractPaymentCardNumber(frame: frame, rectangle: observation),
            let _ = self.selectedCard.numberCard,
@@ -200,38 +215,38 @@ public class VisionCardScannerViewController: UIViewController, AVCaptureVideoDa
         }
       }
     } else {
-      self.paymentCardRectangleObservation = nil
+      paymentCardRectangleObservation = nil
     }
   }
-  
+
   private func extractPaymentCardNumber(frame: CVImageBuffer, rectangle: VNRectangleObservation) -> Bool {
-    
+
     let cardPositionInImage = VNImageRectForNormalizedRect(rectangle.boundingBox, CVPixelBufferGetWidth(frame), CVPixelBufferGetHeight(frame))
     let ciImage = CIImage(cvImageBuffer: frame)
     let croppedImage = ciImage.cropped(to: cardPositionInImage)
-    
+
     let request = VNRecognizeTextRequest()
     request.recognitionLevel = .accurate
     request.usesLanguageCorrection = true
-    
+
     let stillImageRequestHandler = VNImageRequestHandler(ciImage: croppedImage, options: [:])
     try? stillImageRequestHandler.perform([request])
-    
+
     guard let texts = request.results as? [VNRecognizedTextObservation], texts.count > 0 else {
       return false
     }
-    
+
     let recognizedStrings = texts.compactMap { observation in
-      return observation.topCandidates(1).first?.string
+      observation.topCandidates(1).first?.string
     }
-    
+
     let response = VisionCardScannerEntity()
     for result in texts {
       if let resultCandidate = result.topCandidates(1).first,
          resultCandidate.confidence > 0.5 {
         let resultStr = resultCandidate.string
         let text = resultStr.replacingOccurrences(of: " ", with: "")
-        
+
         if text.count > 12,
            CharacterSet.decimalDigits.isSuperset(of: CharacterSet(charactersIn: text)) {
           isFound = true
@@ -241,24 +256,27 @@ public class VisionCardScannerViewController: UIViewController, AVCaptureVideoDa
                   matches.count == 1,
                   matches[0].first == text {
           response.expireIn = text
-        } else if let matchesName = VSUtilities.regex(in: text, pattern: Constants.namePattern),
-                  matchesName.count > 0 {
-          response.name = matchesName[0].first
         }
       }
     }
-    
+
+    for recognized in recognizedStrings {
+      if let text = VSUtilities.detectNameHolder(in: recognized) {
+        response.name = text
+      }
+    }
     
     // Name
     if let name = response.name {
       lock.lock()
       let count = predictedCardInfo[.name(name), default: 0]
       predictedCardInfo[.name(name)] = count + 1
-      if count > 2 {
+      if count > 4 {
         selectedCard.name = name
       }
       lock.unlock()
     }
+    
     // ExpireDate
     if let date = response.expireIn {
       lock.lock()
@@ -269,7 +287,7 @@ public class VisionCardScannerViewController: UIViewController, AVCaptureVideoDa
       }
       lock.unlock()
     }
-    
+
     // Number
     if let number = response.numberCard {
       lock.lock()
@@ -280,20 +298,21 @@ public class VisionCardScannerViewController: UIViewController, AVCaptureVideoDa
       }
       lock.unlock()
     }
-    
+
     response.debugString = recognizedStrings.joined(separator: ",")
-    
+
     if selectedCard.numberCard != nil,
        let numberCard = selectedCard.numberCard,
        VSUtilities.luhnCheck(number: numberCard) {
       selectedCard.cardType = detectKindOfCard(numberCard)
       selectedCard.debugString = response.debugString
+      selectedCard.name = response.name
       return true
     }
-    
+
     return false
   }
-  
+
   private func detectKindOfCard(_ numberCard: String) -> CardType {
     for card in CardType.allCards {
       if (VSUtilities.matchesRegex(regex: card.regex, text: numberCard)) {
@@ -302,9 +321,9 @@ public class VisionCardScannerViewController: UIViewController, AVCaptureVideoDa
     }
     return .Unknown
   }
-}
-
-extension VisionCardScannerViewController: VisionCardScannerProtocol {
+  
+  // MARK: - VisionCardScannerProtocol
+  
   public func startScanning(resultsHandler: @escaping VisionCardScannerCompletion) {
     self.resultsHandler = resultsHandler
     startRunning()
