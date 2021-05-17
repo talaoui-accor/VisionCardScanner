@@ -59,7 +59,7 @@ public class VisionCardScannerViewController: UIViewController, AVCaptureVideoDa
   
   // MARK: - Initializers
   
-  init() {
+  public init() {
     super.init(nibName: nil, bundle: nil)
   }
   
